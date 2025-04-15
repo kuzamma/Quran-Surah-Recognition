@@ -78,7 +78,7 @@ quran-surah-recognition/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/quran-surah-recognition.git
+   git clone https://github.com/kuzamma/quran-surah-recognition.git
    cd quran-surah-recognition
    ```
 
