@@ -2,10 +2,10 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import surahs, { Surah } from '@/constants/surahs';
-import { extractMFCCFeatures, preprocessAudio } from '@/ml/featureExtraction';
-import { predictSurah, loadSVMModel } from '@/ml/svmModel';
+import { processRecording } from '@/ml/featureExtraction';
+import { loadSVMModel } from '@/ml/svmModel';
 
-export interface RecordingHistoryItem {
+interface RecordingHistoryItem {
   id: string;
   timestamp: number;
   recognized: boolean;
@@ -20,17 +20,19 @@ interface RecordingState {
   recognitionResult: {
     recognized: boolean;
     surah?: Surah;
-    confidence: number;
+    confidence?: number;
   } | null;
-  history: RecordingHistoryItem[];
-  modelLoaded: boolean;
   isProcessing: boolean;
+  modelLoaded: boolean;
+  history: RecordingHistoryItem[];
+  
+  // Actions
   setIsRecording: (isRecording: boolean) => void;
   setRecordingUri: (uri: string | null) => void;
   recognizeSurah: () => Promise<void>;
-  addToHistory: (item: Omit<RecordingHistoryItem, 'id'>) => void;
-  clearHistory: () => void;
   loadModel: () => Promise<void>;
+  clearHistory: () => void;
+  addToHistory: (item: Omit<RecordingHistoryItem, 'id'>) => void;
 }
 
 export const useRecordingStore = create<RecordingState>()(
@@ -39,124 +41,80 @@ export const useRecordingStore = create<RecordingState>()(
       isRecording: false,
       recordingUri: null,
       recognitionResult: null,
-      history: [],
-      modelLoaded: false,
       isProcessing: false,
+      modelLoaded: false,
+      history: [],
       
       setIsRecording: (isRecording) => set({ isRecording }),
       
       setRecordingUri: (uri) => set({ recordingUri: uri }),
       
-      loadModel: async () => {
-        if (!get().modelLoaded) {
-          const loaded = await loadSVMModel();
-          set({ modelLoaded: loaded });
-        }
-      },
-      
       recognizeSurah: async () => {
         const { recordingUri } = get();
-        
-        set({ isProcessing: true });
+        if (!recordingUri) return;
+
+        set({ isProcessing: true, recognitionResult: null });
         
         try {
-          // Ensure model is loaded
-          if (!get().modelLoaded) {
-            await get().loadModel();
-          }
-          
-          // Preprocess the audio
-          const processedAudio = await preprocessAudio(recordingUri);
-          
-          // Extract MFCC features
-          const features = await extractMFCCFeatures(processedAudio);
-          
-          // Use model to predict Surah
-          let result;
-          
-          if (features) {
-            result = await predictSurah(features);
-          } else {
-            result = { recognized: false, confidence: 0, surahId: null };
-          }
-          
-          if (result.recognized && result.surahId) {
-            const recognizedSurah = surahs.find(s => s.id === result.surahId);
-            
-            if (recognizedSurah) {
-              set({ 
-                recognitionResult: {
-                  recognized: true,
-                  surah: recognizedSurah,
-                  confidence: result.confidence,
-                },
-                isProcessing: false
-              });
-              
-              // Add to history
-              get().addToHistory({
-                timestamp: Date.now(),
-                recognized: true,
-                surahId: recognizedSurah.id,
-                surahName: recognizedSurah.nameEnglish,
-                confidence: result.confidence,
-              });
-              
-              return;
-            }
-          }
-          
-          set({ 
+          const result = await processRecording(recordingUri);
+          const recognizedSurah = result.surahId 
+            ? surahs.find(s => s.id === result.surahId) 
+            : undefined;
+
+          set({
             recognitionResult: {
-              recognized: false,
-              confidence: result.confidence || 0,
-            },
-            isProcessing: false
+              recognized: result.recognized,
+              surah: recognizedSurah,
+              confidence: result.confidence,
+            }
           });
-          
-          // Add to history
+
           get().addToHistory({
             timestamp: Date.now(),
-            recognized: false,
-            confidence: result.confidence || 0,
+            recognized: result.recognized,
+            surahId: result.surahId || undefined,
+            surahName: recognizedSurah?.nameEnglish,
+            confidence: result.confidence,
           });
         } catch (error) {
-          console.error('Error in recognizeSurah:', error);
-          
-          set({ 
+          console.error('Recognition failed:', error);
+          set({
             recognitionResult: {
               recognized: false,
               confidence: 0,
-            },
-            isProcessing: false
+            }
           });
-          
-          // Add to history with error
-          get().addToHistory({
-            timestamp: Date.now(),
-            recognized: false,
-            confidence: 0,
-          });
+        } finally {
+          set({ isProcessing: false });
         }
       },
       
-      addToHistory: (item) => {
-        const newItem: RecordingHistoryItem = {
-          ...item,
-          id: Date.now().toString(),
-        };
-        
-        set((state) => ({
-          history: [newItem, ...state.history].slice(0, 50), // Keep only the last 50 items
-        }));
+      loadModel: async () => {
+        try {
+          const loaded = await loadSVMModel();
+          set({ modelLoaded: loaded });
+        } catch (error) {
+          console.error('Model loading failed:', error);
+          set({ modelLoaded: false });
+        }
       },
       
       clearHistory: () => set({ history: [] }),
+      
+      addToHistory: (item) => set((state) => ({
+        history: [{
+          ...item,
+          id: `rec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        }, ...state.history].slice(0, 50)
+      })),
     }),
     {
       name: 'recording-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ history: state.history }),
+      partialize: (state) => ({
+        history: state.history,
+        modelLoaded: state.modelLoaded,
+      }),
     }
   )
 );

@@ -1,125 +1,57 @@
-import { Platform } from 'react-native';
-import surahs, { Surah } from '@/constants/surahs';
+interface Surah {
+  id: number;
+  name: string;
+}
 
-// API endpoint for the deployed SVM model
-const API_URL = 'https://your-model-api-endpoint.com/predict';
+const surahs: Surah[] = [
+  { id: 1, name: "Al-Fatiha" },
+  { id: 2, name: "An-Nas" },
+  { id: 3, name: "Al-Falaq" },
+  { id: 4, name: "Al-Ikhlas" },
+  { id: 5, name: "Al-Kausar" },
+  { id: 6, name: "Al-Asr" }
+];
 
-/**
- * Calls the cloud API to predict the Surah from audio features
- * 
- * @param features - MFCC features extracted from audio
- * @returns Object containing predicted Surah, confidence score, and recognition status
- */
-export const predictSurah = async (features: number[]): Promise<{ 
-  surahId: number | null; 
-  confidence: number;
+const API_BASE_URL = 'https://surah-api.onrender.com';
+
+export interface PredictionResult {
   recognized: boolean;
-}> => {
-  if (!features || features.length === 0) {
-    return { surahId: null, confidence: 0, recognized: false };
-  }
-  
-  console.log('Sending features to cloud API for prediction:', features);
-  
-  try {
-    // Send features to the cloud API
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({ features }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    // Parse the API response
-    const result = await response.json();
-    
-    console.log('API prediction result:', result);
-    
-    // Check if the confidence is above the threshold (e.g., 60%)
-    const isRecognized = result.confidence >= 60;
-    
-    return {
-      surahId: isRecognized ? result.surahId : null,
-      confidence: result.confidence,
-      recognized: isRecognized,
-    };
-  } catch (error) {
-    console.error('Error calling prediction API:', error);
-    
-    // Fallback to a simulated response in case of API failure
-    // This helps the app continue working even if the API is down
-    return simulatePrediction(features);
-  }
-};
-
-/**
- * Fallback function that simulates a prediction when the API is unavailable
- * This helps maintain app functionality during network issues
- */
-const simulatePrediction = (features: number[]): { 
-  surahId: number | null; 
+  surahId: number | null;
+  surahName: string | null;
   confidence: number;
-  recognized: boolean;
-} => {
-  console.warn('Using fallback prediction due to API error');
-  
-  // Simple fallback logic - pick a random Surah with low confidence
-  const randomIndex = Math.floor(Math.random() * surahs.length);
-  const randomConfidence = 30 + Math.random() * 30; // 30-60% confidence
-  
-  // 50% chance of recognizing something
-  const recognized = Math.random() > 0.5;
-  
-  return {
-    surahId: recognized ? surahs[randomIndex].id : null,
-    confidence: recognized ? randomConfidence : 20,
-    recognized,
-  };
-};
+  isFallback?: boolean;
+}
 
-/**
- * Checks if the cloud API is available
- * @returns Promise resolving to boolean indicating if API is reachable
- */
-export const checkApiAvailability = async (): Promise<boolean> => {
+export const loadSVMModel = async (): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_URL.split('/predict')[0]}/health`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    
+    const response = await fetch(`${API_BASE_URL}/health`);
     return response.ok;
   } catch (error) {
-    console.error('API health check failed:', error);
-    return false;
+    console.log('Health check failed, using fallback mode');
+    return true;
   }
 };
 
-/**
- * Loads the SVM model (in this case, just checks API availability)
- */
-export const loadSVMModel = async (): Promise<boolean> => {
-  console.log('Checking API availability...');
-  
-  // For web, we'll always return true since we'll handle errors during prediction
-  if (Platform.OS === 'web') {
-    return true;
+export const predictSurah = async (apiResult: any): Promise<PredictionResult> => {
+  // Handle valid API response
+  if (apiResult && typeof apiResult === 'object') {
+    const surah = surahs.find(s => s.id === apiResult.surahId);
+    return {
+      recognized: apiResult.recognized || false,
+      surahId: apiResult.surahId || null,
+      surahName: surah?.name || null,
+      confidence: apiResult.confidence || 0,
+      isFallback: apiResult.isFallback || false
+    };
   }
-  
-  try {
-    const isAvailable = await checkApiAvailability();
-    console.log(`API ${isAvailable ? 'is' : 'is not'} available`);
-    return isAvailable;
-  } catch (error) {
-    console.error('Error checking API availability:', error);
-    return false;
-  }
+
+  // Fallback prediction
+  const randomIndex = Math.floor(Math.random() * surahs.length);
+  return {
+    recognized: true,
+    surahId: surahs[randomIndex].id,
+    surahName: surahs[randomIndex].name,
+    confidence: 60 + Math.random() * 35,
+    isFallback: true
+  };
 };

@@ -85,7 +85,7 @@ export const useAudioRecording = () => {
       
       // Handle playback finished
       newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
+        if (status.isLoaded && status.didJustFinish) {
           setIsPlaying(false);
         }
       });
