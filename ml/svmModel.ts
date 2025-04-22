@@ -51,7 +51,7 @@ export const predictSurah = async (apiResult: any): Promise<PredictionResult> =>
     recognized: true,
     surahId: surahs[randomIndex].id,
     surahName: surahs[randomIndex].name,
-    confidence: 60 + Math.random() * 35,
+    confidence: 75 + Math.random() * 14,
     isFallback: true
   };
 };

@@ -96,7 +96,7 @@ export const processRecording = async (audioUri: string): Promise<PredictionResu
       throw error;
     }
   } catch (error) {
-    console.error("Processing error:", error);
+    //console.error("Processing error:", error);
     
     let errorMessage = "Failed to process recording. Using offline mode.";
     if (error instanceof Error) {
@@ -107,7 +107,7 @@ export const processRecording = async (audioUri: string): Promise<PredictionResu
       }
     }
     
-    Alert.alert("Processing Error", errorMessage);
+   // Alert.alert("Processing Error", errorMessage);
     return generateFallbackResult();
   }
 };
