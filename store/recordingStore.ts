@@ -2,10 +2,10 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import surahs, { Surah } from '@/constants/surahs';
-import { processRecording } from '@/ml/featureExtraction';
-import { loadSVMModel } from '@/ml/svmModel';
+import { extractMFCCFeatures, preprocessAudio } from '@/ml/featureExtraction';
+import { predictSurah, loadSVMModel } from '@/ml/svmModel';
 
-interface RecordingHistoryItem {
+export interface RecordingHistoryItem {
   id: string;
   timestamp: number;
   recognized: boolean;
@@ -38,6 +38,7 @@ interface RecordingState {
 export const useRecordingStore = create<RecordingState>()(
   persist(
     (set, get) => ({
+      // State
       isRecording: false,
       recordingUri: null,
       recognitionResult: null,
@@ -45,47 +46,81 @@ export const useRecordingStore = create<RecordingState>()(
       modelLoaded: false,
       history: [],
       
+      // Actions
       setIsRecording: (isRecording) => set({ isRecording }),
       
       setRecordingUri: (uri) => set({ recordingUri: uri }),
       
       recognizeSurah: async () => {
         const { recordingUri } = get();
-        if (!recordingUri) return;
-
-        set({ isProcessing: true, recognitionResult: null });
+        
+        if (!recordingUri) {
+          console.error('No recording URI available');
+          return;
+        }
+        
+        set({ isProcessing: true });
         
         try {
-          const result = await processRecording(recordingUri);
-          const recognizedSurah = result.surahId 
-            ? surahs.find(s => s.id === result.surahId) 
+          // Preprocess the audio
+          const processedUri = await preprocessAudio(recordingUri);
+          
+          if (!processedUri) {
+            throw new Error('Audio preprocessing failed');
+          }
+          
+          // Extract features and get API result
+          const apiResult = await extractMFCCFeatures(processedUri);
+          
+          if (!apiResult) {
+            throw new Error('Feature extraction failed');
+          }
+          
+          // Predict the surah using the API result
+          const prediction = await predictSurah(apiResult);
+          
+          // Find the surah object based on the predicted ID
+          const recognizedSurah = prediction.surahId 
+            ? surahs.find(s => s.id === prediction.surahId) 
             : undefined;
-
+          
+          // Set the recognition result
           set({
             recognitionResult: {
-              recognized: result.recognized,
+              recognized: prediction.recognized,
               surah: recognizedSurah,
-              confidence: result.confidence,
-            }
+              confidence: prediction.confidence,
+            },
+            isProcessing: false,
           });
-
+          
+          // Add to history
           get().addToHistory({
             timestamp: Date.now(),
-            recognized: result.recognized,
-            surahId: result.surahId || undefined,
+            recognized: prediction.recognized,
+            surahId: prediction.surahId || undefined,
             surahName: recognizedSurah?.nameEnglish,
-            confidence: result.confidence,
+            confidence: prediction.confidence,
           });
+          
         } catch (error) {
-          console.error('Recognition failed:', error);
+          console.error('Error recognizing surah:', error);
+          
+          // Set a failed recognition result
           set({
             recognitionResult: {
               recognized: false,
               confidence: 0,
-            }
+            },
+            isProcessing: false,
           });
-        } finally {
-          set({ isProcessing: false });
+          
+          // Add failed recognition to history
+          get().addToHistory({
+            timestamp: Date.now(),
+            recognized: false,
+            confidence: 0,
+          });
         }
       },
       
@@ -94,7 +129,7 @@ export const useRecordingStore = create<RecordingState>()(
           const loaded = await loadSVMModel();
           set({ modelLoaded: loaded });
         } catch (error) {
-          console.error('Model loading failed:', error);
+          console.error('Error loading model:', error);
           set({ modelLoaded: false });
         }
       },
@@ -102,16 +137,20 @@ export const useRecordingStore = create<RecordingState>()(
       clearHistory: () => set({ history: [] }),
       
       addToHistory: (item) => set((state) => ({
-        history: [{
-          ...item,
-          id: `rec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-        }, ...state.history].slice(0, 50)
+        history: [
+          {
+            ...item,
+            id: `recording-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          },
+          ...state.history,
+        ].slice(0, 50), // Keep only the last 50 recordings
       })),
     }),
     {
-      name: 'recording-storage',
+      name: 'quran-recognition-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
+        // Only persist these fields
         history: state.history,
         modelLoaded: state.modelLoaded,
       }),

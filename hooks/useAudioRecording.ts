@@ -35,10 +35,33 @@ export const useAudioRecording = () => {
         playsInSilentModeIOS: true,
       });
 
-      // Create and start recording
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      // Create and start recording with high quality settings
+      // CRITICAL: The API expects 22050 Hz sample rate
+      const { recording: newRecording } = await Audio.Recording.createAsync({
+        android: {
+          extension: '.wav', // Changed to WAV for better compatibility
+          outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+          audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+          sampleRate: 22050, // Match the API's expected sample rate
+          numberOfChannels: 1,
+          bitRate: 128000,
+        },
+        ios: {
+          extension: '.wav', // Changed to WAV for better compatibility
+          outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+          audioQuality: Audio.IOSAudioQuality.MAX,
+          sampleRate: 22050, // Match the API's expected sample rate
+          numberOfChannels: 1,
+          bitRate: 128000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: 'audio/wav', // Changed to WAV
+          bitsPerSecond: 128000,
+        },
+      });
       
       setRecording(newRecording);
       setIsRecording(true);
@@ -85,7 +108,7 @@ export const useAudioRecording = () => {
       
       // Handle playback finished
       newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+        if (status.isLoaded && 'didJustFinish' in status && status.didJustFinish) {
           setIsPlaying(false);
         }
       });

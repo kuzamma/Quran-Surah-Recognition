@@ -36,7 +36,7 @@ export const useAudioPlayback = () => {
       
       // Handle playback finished
       newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+        if (status.isLoaded && 'didJustFinish' in status && status.didJustFinish) {
           setIsPlaying(false);
         }
       });

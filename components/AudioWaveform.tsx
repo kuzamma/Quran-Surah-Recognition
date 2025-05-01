@@ -13,18 +13,23 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ isRecording }) => {
     Array(BAR_COUNT).fill(0).map(() => new Animated.Value(0))
   ).current;
 
+  const animationInstances = useRef<Animated.CompositeAnimation[]>([]).current;
+
   useEffect(() => {
     if (isRecording) {
       // Start animations for each bar
+      animationInstances.length = 0; // Clear previous instances
       barAnimations.forEach((anim, index) => {
-        createAnimation(anim, index).start();
+        const animation = createAnimation(anim, index);
+        animationInstances.push(animation);
+        animation.start();
       });
     } else {
       // Reset all animations
       barAnimations.forEach((anim) => {
         anim.setValue(0);
-        Animated.timing(anim).stop();
       });
+      animationInstances.forEach((animation) => animation.stop());
     }
   }, [isRecording]);
 

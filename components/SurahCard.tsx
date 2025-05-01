@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Play, Volume2 } from 'lucide-react-native';
+import { Volume2 } from 'lucide-react-native';
 import { Surah } from '@/constants/surahs';
 import Colors from '@/constants/colors';
 

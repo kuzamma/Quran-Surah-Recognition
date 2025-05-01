@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Header from '@/components/Header';
@@ -34,6 +34,7 @@ export default function RecordScreen() {
   } = useRecordingStore();
   
   const [showResult, setShowResult] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   
   // Load SVM model when the app starts
   useEffect(() => {
@@ -52,12 +53,32 @@ export default function RecordScreen() {
       if (uri) {
         setRecordingUri(uri);
         
+        // IMPORTANT: The API needs at least 13 seconds of audio
+        // (8 second offset + 5 second segment)
+        if (recordingDuration < 13) {
+          Alert.alert(
+            "Recording Too Short",
+            "Please record for at least 13 seconds to allow for proper recognition. The API needs enough audio data to analyze.",
+            [{ text: "OK" }]
+          );
+          return;
+        }
+        
         // Process the recording
-        await recognizeSurah();
-        setShowResult(true);
+        try {
+          await recognizeSurah();
+          setShowResult(true);
+        } catch (error) {
+          Alert.alert(
+            "Recognition Failed",
+            "There was an error processing your recitation. Please try again with a longer, clearer recording.",
+            [{ text: "OK" }]
+          );
+        }
       }
     } else {
       setShowResult(false);
+      setRecordingDuration(0);
       startRecording();
     }
   };
@@ -109,7 +130,10 @@ export default function RecordScreen() {
             
             <AudioWaveform isRecording={isRecording} />
             
-            <RecordingTimer isRecording={isRecording} />
+            <RecordingTimer 
+              isRecording={isRecording} 
+              onTimerUpdate={(seconds) => setRecordingDuration(seconds)}
+            />
             
             <View style={styles.buttonContainer}>
               <RecordButton 
@@ -120,6 +144,14 @@ export default function RecordScreen() {
             
             <Text style={styles.supportedSurahs}>
               Supported Surahs: Al-Fatiha, Al-Nas, Al-Falaq, Al-Ikhlas, Al-Kausar, Al-As'r
+            </Text>
+            
+            <Text style={styles.recordingTip}>
+              For best results, recite for at least 15 seconds in a quiet environment
+            </Text>
+            
+            <Text style={styles.apiNote}>
+              Note: The API requires at least 13 seconds of audio to properly analyze your recitation
             </Text>
           </View>
         )}
@@ -157,6 +189,20 @@ const styles = StyleSheet.create({
     color: Colors.lightText,
     textAlign: 'center',
     marginTop: 20,
+    maxWidth: '90%',
+  },
+  recordingTip: {
+    fontSize: 12,
+    color: Colors.lightText,
+    textAlign: 'center',
+    marginTop: 10,
+    fontStyle: 'italic',
+  },
+  apiNote: {
+    fontSize: 12,
+    color: Colors.error,
+    textAlign: 'center',
+    marginTop: 8,
     maxWidth: '90%',
   }
 });

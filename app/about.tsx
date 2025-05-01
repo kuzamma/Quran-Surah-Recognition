@@ -21,10 +21,7 @@ export default function AboutScreen() {
       
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.logoContainer}>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?q=80&w=200&auto=format&fit=crop' }}
-            style={styles.logo}
-          />
+          
         </View>
         
         <Text style={styles.appName}>Quran Surah Recognition</Text>

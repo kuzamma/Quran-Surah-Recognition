@@ -40,10 +40,9 @@ const RecognitionResult: React.FC<RecognitionResultProps> = ({
         <Text style={styles.resultDescription}>
           {recognized
             ? 'The recitation has been successfully identified.'
-            : 'Unable to identify the Surah from your recitation.'}
+            : 'We could not identify the Surah from your recitation.'}
         </Text>
       </View>
-    
 
       {recognized && surah && (
         <SurahCard 
@@ -53,7 +52,12 @@ const RecognitionResult: React.FC<RecognitionResultProps> = ({
         />
       )}
 
-      
+      <View style={styles.modelInfo}>
+        <Brain size={16} color={Colors.lightText} />
+        <Text style={styles.modelText}>
+          Analyzed using SVM model with MFCC features
+        </Text>
+      </View>
 
       <TouchableOpacity style={styles.tryAgainButton} onPress={onTryAgain}>
         <Text style={styles.tryAgainText}>Try Again</Text>

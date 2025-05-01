@@ -4,9 +4,13 @@ import Colors from '@/constants/colors';
 
 interface RecordingTimerProps {
   isRecording: boolean;
+  onTimerUpdate?: (seconds: number) => void;
 }
 
-const RecordingTimer: React.FC<RecordingTimerProps> = ({ isRecording }) => {
+const RecordingTimer: React.FC<RecordingTimerProps> = ({ 
+  isRecording, 
+  onTimerUpdate 
+}) => {
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
@@ -14,16 +18,25 @@ const RecordingTimer: React.FC<RecordingTimerProps> = ({ isRecording }) => {
 
     if (isRecording) {
       interval = setInterval(() => {
-        setSeconds(prevSeconds => prevSeconds + 1);
+        setSeconds(prevSeconds => {
+          const newSeconds = prevSeconds + 1;
+          if (onTimerUpdate) {
+            onTimerUpdate(newSeconds);
+          }
+          return newSeconds;
+        });
       }, 1000);
     } else {
       setSeconds(0);
+      if (onTimerUpdate) {
+        onTimerUpdate(0);
+      }
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRecording]);
+  }, [isRecording, onTimerUpdate]);
 
   const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
