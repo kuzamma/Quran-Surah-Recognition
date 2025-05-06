@@ -146,12 +146,10 @@ export default function RecordScreen() {
               Supported Surahs: Al-Fatiha, Al-Nas, Al-Falaq, Al-Ikhlas, Al-Kausar, Al-As'r
             </Text>
             
-            <Text style={styles.recordingTip}>
-              For best results, recite for at least 15 seconds in a quiet environment
-            </Text>
+            
             
             <Text style={styles.apiNote}>
-              Note: The API requires at least 13 seconds of audio to properly analyze your recitation
+              Note: Requires at least 13 seconds of audio to properly analyze your recitation
             </Text>
           </View>
         )}

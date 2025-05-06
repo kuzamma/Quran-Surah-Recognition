@@ -42,37 +42,7 @@ export default function SettingsScreen() {
       <ScrollView>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Settings</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Moon size={20} color={Colors.text} />
-              <Text style={styles.settingText}>Dark Mode</Text>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#D1D1D6', true: Colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Volume2 size={20} color={Colors.text} />
-              <Text style={styles.settingText}>High Quality Audio</Text>
-            </View>
-            <Switch
-              value={highQualityAudio}
-              onValueChange={setHighQualityAudio}
-              trackColor={{ false: '#D1D1D6', true: Colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-        </View>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data</Text>
-          
+           
           <TouchableOpacity 
             style={styles.settingItem}
             onPress={() => router.push('/history')}

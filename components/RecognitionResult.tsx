@@ -48,7 +48,7 @@ const RecognitionResult: React.FC<RecognitionResultProps> = ({
         <SurahCard 
           surah={surah} 
           confidence={confidence} 
-          onPlay={onPlaySurah}
+          //onPlay={onPlaySurah}
         />
       )}
 

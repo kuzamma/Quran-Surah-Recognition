@@ -30,7 +30,8 @@ export default function AboutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About This App</Text>
           <Text style={styles.sectionText}>
-            This application uses voice recognition technology to identify and classify six specific Surahs from the Quran. The app is designed to help users practice their recitation and learn the correct pronunciation of these important Surahs.
+            This application uses voice recognition technology to identify and classify six specific
+             Surahs from the Quran. 
           </Text>
         </View>
         
@@ -96,15 +97,10 @@ export default function AboutScreen() {
           </Text>
         </View>
         
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy</Text>
-          <Text style={styles.sectionText}>
-            Your recordings are processed locally on your device and are not sent to any external servers. Your privacy is important to us.
-          </Text>
-        </View>
+        
         
         <Text style={styles.footer}>
-          © 2023 Quran Surah Recognition App
+          © 2025 Quran Surah Recognition App
         </Text>
       </ScrollView>
     </SafeAreaView>

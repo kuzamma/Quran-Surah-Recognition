@@ -18,12 +18,7 @@ const Header: React.FC<HeaderProps> = ({ title, showIcons = true }) => {
       
       {showIcons && (
         <View style={styles.iconContainer}>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => router.push('/history')}
-          >
-            <History size={22} color={Colors.text} />
-          </TouchableOpacity>
+           
           
           <TouchableOpacity 
             style={styles.iconButton}
